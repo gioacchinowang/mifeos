@@ -30,3 +30,24 @@
 *.exe
 *.out
 *.app
+
+# Emacs temporary and backup files
+*~
+*#
+
+# plots
+*.fits
+*.tga
+*.pdf
+*.eps
+
+# configure files
+*.scan
+*.log
+
+# other results
+*.dat
+*.gze
+
+# jupyter checkpoints
+*/.ipynb_checkpoints/*.ipynb

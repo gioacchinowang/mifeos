@@ -1,0 +1,62 @@
+.SUFFIXES:
+.SUFFIXES:  .out .o .f90 .for .f
+# Edit this to be correct on your system
+F90 = ifort
+
+MODULEDIR= include
+#CW= -check all -warn all
+
+#HEALPIXROOT = /home/pogosyan/packages/Healpix_2.11c
+HEALPIXROOT = /wrk/aducout/genus/Healpix_2.11c
+HEALPIXROOT2= /wrk/aducout/genus/cfitsio
+LAPACKROOT= /wrk/aducout/genus/lapack-3.3.1
+
+#MPIROOT = /softs/modules/_all/mpi/openmpi-1.3.3-ifort-11.1-gcc-4.3.3-PBS
+
+#F90OPTS = -check bounds -check format -warn declarations -warn argument_checking
+#F90OPTS = -O4 -static-libcxa -module $(MODULEDIR) -I$(MODULEDIR) -qp
+F90OPTS = -O3 -module $(MODULEDIR) -I$(MODULEDIR) 
+LDOPTS = 
+HEALPIXMOD = -I$(HEALPIXROOT)/include_ducout
+HEALPIXLIB = -L$(HEALPIXROOT)/lib_ducout -lhealpix
+HEALPIXLIB2= -L$(HEALPIXROOT2)/lib -lcfitsio
+LAPACKLIB= -L$(LAPACKROOT) -llapack_LINUX
+LAPACKLIB2= -L$(LAPACKROOT) -lblas_LINUX
+LAPACKLIB3= -L$(LAPACKROOT) -ltmglib_LINUX
+
+#--------------------------------------------------------------
+
+all : CND_REG2D
+
+#--------------------------------------------------------------
+# Dependencies for object files
+
+CND_REG2D.o: CND_REG2D_mod.o CND_REG2D.f90
+
+#--------------------------------------------------------------
+# test driver and executables linkage
+
+CND_REG2D: CND_REG2D.o CND_REG2D_mod.o
+	$(F90) $(F90OPTS) $(LDOPTS) -o CND_REG2D CND_REG2D.o CND_REG2D_mod.o \
+		$(HEALPIXLIB) $(HEALPIXLIB2) $(LAPACKLIB) $(LAPACKLIB2) $(LAPACKLIB3)
+
+#-----------------------------------------------------
+
+OBJ = CND_REG2D.o CND_REG2D_mod.o
+
+objects: $(OBJ)
+	echo "Object files made"
+#----------------------------------------------------
+
+CND_REG2D_mod.o : CND_REG2D_mod.f90
+	$(F90) $(F90OPTS) -c CND_REG2D_mod.f90 $(HEALPIXMOD)
+CND_REG2D.o : CND_REG2D.f90
+	$(F90) $(F90OPTS) -c CND_REG2D.f90 $(HEALPIXMOD)
+
+#----------------------------------------------------------
+
+clean:
+	/bin/rm -f *.o CND_REG2D 
+
+cleanall:
+	/bin/rm -f *.o CND_REG2D $(MODULEDIR)/[!n]*.mod	
