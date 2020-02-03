@@ -41,18 +41,18 @@ IMPLICIT NONE
 PRIVATE
 
 TYPE EXCRS_STAT
-     INTEGER(I4B), POINTER    :: n(:)
-     INTEGER(I4B), POINTER    :: s(:)
+     INTEGER(I4B), POINTER    :: n(:) !sizes in pixels of isolated clusters above the level
+     INTEGER(I4B), POINTER    :: s(:) !number of each cluster side elements
      INTEGER(I4B), POINTER    :: sm(:)
-     REAL(DP),     POINTER    :: sf(:)
-     INTEGER(I4B), POINTER    :: g(:)
+     REAL(DP),     POINTER    :: sf(:) !length of each cluster boundary
+     INTEGER(I4B), POINTER    :: g(:) !2 x euler number of each isolated cluster
      LOGICAL                  :: do_genus=.true., do_sides=.false., do_length=.true.
 END TYPE EXCRS_STAT
 
 TYPE CND_CNTRL_TYPE
-     INTEGER    :: RING=1,  NESTED=2
-     INTEGER    :: STAT=0,  EXACT=1
-     INTEGER    :: ABOVE=1, BELOW=-1
+     INTEGER    :: RING=1,  NESTED=2 !HEALPix map ordering
+     INTEGER    :: STAT=0,  EXACT=1 !'statistical' or 'exact' cluster connectivity
+     INTEGER    :: ABOVE=1, BELOW=-1 !excursion logic
      INTEGER    :: CONNECT=0, EXCURSION=1
      REAL(DP)   :: MASK_VALUE=-1.d29
 END TYPE CND_CNTRL_TYPE
@@ -72,198 +72,201 @@ PUBLIC  :: CND_REG,CND_CNTRL_TYPE,EXCRS_STAT
 
 CONTAINS
 
-    SUBROUTINE CND_REG (dt,nside1,ordering1,level,stats,nvoids,CND_CNTRL_IN)
+  SUBROUTINE CND_REG (dt,nside1,ordering1,level,stats,nvoids,CND_CNTRL_IN)
 
-    REAL(DP), intent(in), dimension(0:) :: dt
-    REAL(DP),         intent(in)        :: level
-    INTEGER(I4B),     intent(in)        :: nside1,ordering1
-    INTEGER(I4B),     intent(out)       :: nvoids
-    TYPE(EXCRS_STAT), intent(inout)     :: stats
-    TYPE(CND_CNTRL_TYPE), optional      :: CND_CNTRL_IN
+  REAL(DP), intent(in), dimension(0:)     :: dt
+  REAL(DP),             intent(in)        :: level
+  INTEGER(I4B),         intent(in)        :: nside1,ordering1
+  INTEGER(I4B),         intent(out)       :: nvoids
+  TYPE(EXCRS_STAT),     intent(inout)     :: stats
+  TYPE(CND_CNTRL_TYPE), optional          :: CND_CNTRL_IN
 
-    INTEGER(I4B)                        :: i, i_nest, nabove, k
-    INTEGER(I4B)                        :: NV,NB
-    TYPE(CND_CNTRL_TYPE)                :: CND_CNTRL
+  INTEGER(I4B)                            :: i, i_nest, nabove, k
+  INTEGER(I4B)                            :: NV,NB
+  TYPE(CND_CNTRL_TYPE)                    :: CND_CNTRL
        
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Data read-in and setup
-
-    if ( associated(stats%n) ) deallocate(stats%n)  ! clear stats arrays
-    if ( associated(stats%s) ) deallocate(stats%s)
-    if ( associated(stats%sf)) deallocate(stats%sf)
-    if ( associated(stats%g) ) deallocate(stats%g)
-
-    if (.not.stats%do_genus .and. .not.stats%do_sides .and. .not.stats%do_length) then
-       write(0,*)'No job was requested, return'
-       return
-    endif
-
-    if (PRESENT(CND_CNTRL_IN)) CND_CNTRL=CND_CNTRL_IN
-
-    if ( ordering1 /= CND_CNTRL%NESTED .and. ordering1 /= CND_CNTRL%RING ) then
-       write(0,*)'Ordering ',ordering,'is not recognized, ASSUMED nested (2)'
-    endif
-
-    NSIDE   = nside1
-    NSIDESQ = nside1**2
-    NPIX    = nside2npix(NSIDE) 
-    ORDERING= ordering1
-    
-
-    ALLOCATE( l_map(0:NPIX-1) )  ! Allocate and initialized the index map
-    l_map = OUTSIDE
-
-    nabove=0
-    do i=0,NPIX-1
-       i_nest=i
-       if ( dt(i) < CND_CNTRL%MASK_VALUE ) then
-          if (ordering == CND_CNTRL%RING) call ring2nest(NSIDE,i,i_nest)
-          l_map(i_nest) = MASKED
-       elseif (((CND_CNTRL%EXCURSION==CND_CNTRL%ABOVE).and.(dt(i)>=level)).or. &
-              ((CND_CNTRL%EXCURSION==CND_CNTRL%BELOW).and.(dt(i)< level))) then
-          if (ordering == CND_CNTRL%RING) call ring2nest(NSIDE,i,i_nest)
-          l_map(i_nest) = UNCHECKED
-          nabove=nabove+1
-       endif
-    enddo
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Main Part
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Cluster Analysis
-    
-    NV=min(nabove+1,NPIX/4)             ! max number of the connected regions
-    ALLOCATE( stats%n(1:NV) )           ! will contain volume of clusters
-
-    NB=nabove                   ! Stack size NB should be at least equal number
-    ALLOCATE( pixstack(0:NB) )  ! of border points for largest cluster.
-                                ! Which can be as large as all points nabove
-    stats%n=0
-
-    k=0
-    do i=0,NPIX-1                       ! Main loop begins
-       if (l_map(i) == UNCHECKED) then  ! we hit cluster interior
-          k=k+1                         ! This cluster will be  k+1
-          l_map(i) = k                  ! Mark pixel i as belonging to cluster k
-          pixstack(0) = i               ! Put pixel i on stack
-          if(k.gt.NV) then
-             print*, 'k>NV!!!, should never happen, stop'
-             stop
-          else
-             stats%n(k) = regions(k)  ! Search inside cluster k and get its size
-          endif
-       endif
-    enddo
-    nvoids=min(k,NV)
-    DEALLOCATE( pixstack )
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Genus determination
-
-    if ( stats%do_genus ) then
-
-       allocate( stats%g(1:nvoids) )      ! will contain genus of clusters
-
-       if ( CND_CNTRL%CONNECT == CND_CNTRL%STAT ) then
-          vertex=vertex_stat
-       else if ( CND_CNTRL%CONNECT == CND_CNTRL%EXACT ) then
-          vertex=vertex_exct
-       else 
-          write(0,*)'requested connectivity type ',CND_CNTRL%CONNECT ,'unknown'
-          write(0,*)'default to STATISTICAL'
-          vertex=vertex_stat
-       endif
-
-       stats%g=0
-
-       do i=0,NPIX-1               ! Loop over vertices. 
-                                   ! need to check INSIDE or BORDER cells only
-                                   ! to get all the vertices
-          if ( l_map(i) > OUTSIDE .or. l_map(i) <= BORDER ) then 
-             call update_genus(i,stats%g)
-          endif
-       enddo
-! Two vertices - North and South poles - are extra
-       call update_genus_pole(0,stats%g)        ! North pole in ring notation
-       call update_genus_pole(NPIX-4,stats%g)   ! South pole in ring notation
-
-    endif
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Number of border segments determination
-
-    if ( stats%do_sides ) then
-
-       allocate( stats%s(1:nvoids) )       ! contains number of cluster sides
-       allocate( stats%sm(1:nvoids) )      ! contains count of masked boudary
-       stats%s =0
-       stats%sm=0
-
-       do i=0,NPIX-1                       ! Loop over pixels
-
-                                           ! To get all the border edges
-          if ( l_map(i) == BORDER ) then   ! need to check BORDER pixels 
-             call update_sides(i,stats%s)
-          else if ( l_map(i) == MASKED_BORDER ) then 
-             call update_sides(i,stats%sm) ! or  BORDER+MASKED only
-          endif
-       enddo
-
-    endif
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Border length determination
-
-    if ( stats%do_length ) then
-
-       allocate( stats%sf(1:nvoids) )  ! contains surface length of clusters
-       stats%sf=0.d0
-
-       do i=0,NPIX-1                   ! Loop over vertices
-                                       ! MASKED BORDER is not included
-          if ( l_map(i) > OUTSIDE .or. l_map(i) == BORDER ) then 
-             call update_surf(dt,level,i,stats%sf)
-          endif
-       enddo
-    endif
-
-    DEALLOCATE(l_map)
-
-    END SUBROUTINE
-
-
-    INTEGER FUNCTION regions (k)
-    INTEGER k,new_on_stack,istack
-    
-    istack = 0
-    regions = 1
-    DO WHILE ( istack >= 0 )
-       new_on_stack = neibr(k,istack)
-       regions = regions + new_on_stack
-       istack = istack + new_on_stack - 1
-    ENDDO
-    RETURN
-    END FUNCTION
-
-
-    INTEGER FUNCTION neibr(k,istack)
-    INTEGER k,istack
-    INTEGER i,new_on_stack,ipix
-    INTEGER(I4B) center_pix,neighbour_list(8),n_neighbours
-     
-    center_pix=pixstack(istack)
-    call neighbours_nest(NSIDE,center_pix,neighbour_list,n_neighbours)
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Data read-in and setup
  
-    neibr=0
-    DO i=1,n_neighbours
-       ipix=neighbour_list(i)           
-       IF (l_map(ipix) == UNCHECKED) then
-          pixstack(istack+neibr) = ipix
-          if (istack+neibr > MAXSTACK) MAXSTACK=istack+neibr
-          l_map(ipix) = k
-          neibr=neibr+1
-       ELSE IF (l_map(ipix) == OUTSIDE) then
-          l_map(ipix)=BORDER
-       ELSE IF (l_map(ipix) == MASKED)  then
-          l_map(ipix)=MASKED_BORDER
-       ENDIF
-    ENDDO
-    RETURN
-    END FUNCTION
+  !if ( associated(stats%n) ) deallocate(stats%n)  ! clear stats arrays
+  !if ( associated(stats%s) ) deallocate(stats%s)
+  !if ( associated(stats%sf)) deallocate(stats%sf)
+  !if ( associated(stats%g) ) deallocate(stats%g)
+
+  if (.not.stats%do_genus .and. .not.stats%do_sides .and. .not.stats%do_length) then
+    write(0,*)'No job was requested, return'
+    return
+  endif
+
+  if (PRESENT(CND_CNTRL_IN)) CND_CNTRL=CND_CNTRL_IN
+
+  if ( ordering1 /= CND_CNTRL%NESTED .and. ordering1 /= CND_CNTRL%RING ) then
+    write(0,*)'Ordering ',ordering,'is not recognized, ASSUMED nested (2)'
+  endif
+
+  NSIDE   = nside1
+  NSIDESQ = nside1**2
+  NPIX    = nside2npix(NSIDE) 
+  ORDERING= ordering1
+
+  ALLOCATE( l_map(0:NPIX-1) )  ! Allocate and initialized the index map
+  l_map = OUTSIDE
+
+  nabove=0
+  do i=0,NPIX-1
+    i_nest=i
+    if ( dt(i) < CND_CNTRL%MASK_VALUE ) then
+      if (ordering == CND_CNTRL%RING) call ring2nest(NSIDE,i,i_nest)
+      l_map(i_nest) = MASKED
+    elseif (((CND_CNTRL%EXCURSION==CND_CNTRL%ABOVE).and.(dt(i)>=level)).or. &
+            ((CND_CNTRL%EXCURSION==CND_CNTRL%BELOW).and.(dt(i)< level))) then
+      if (ordering == CND_CNTRL%RING) call ring2nest(NSIDE,i,i_nest)
+        l_map(i_nest) = UNCHECKED
+        nabove=nabove+1
+    endif
+  enddo
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Main Part
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Cluster Analysis
+  
+  NV=min(nabove+1,NPIX/4)             ! max number of the connected regions
+  ALLOCATE( stats%n(1:NV) )           ! will contain volume of clusters
+
+  NB=nabove                   ! Stack size NB should be at least equal number
+  ALLOCATE( pixstack(0:NB) )  ! of border points for largest cluster.
+                              ! Which can be as large as all points nabove
+  stats%n=0
+
+  k=0
+  do i=0,NPIX-1                     ! Main loop begins
+    if (l_map(i) == UNCHECKED) then ! we hit cluster interior
+      k=k+1                         ! This cluster will be  k+1
+      l_map(i) = k                  ! Mark pixel i as belonging to cluster k
+      pixstack(0) = i               ! Put pixel i on stack
+      if(k.gt.NV) then
+        print*, 'k>NV!!!, should never happen, stop'
+        stop
+      else
+        stats%n(k) = regions(k)  ! Search inside cluster k and get its size
+      endif
+    endif
+  enddo
+    
+  nvoids=min(k,NV)
+  DEALLOCATE( pixstack )
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Genus determination
+
+  if ( stats%do_genus ) then
+
+    ALLOCATE( stats%g(1:nvoids) )      ! will contain genus of clusters
+
+    if ( CND_CNTRL%CONNECT == CND_CNTRL%STAT ) then
+      vertex=vertex_stat
+    else if ( CND_CNTRL%CONNECT == CND_CNTRL%EXACT ) then
+      vertex=vertex_exct
+    else 
+      write(0,*)'requested connectivity type ',CND_CNTRL%CONNECT ,'unknown'
+      write(0,*)'default to STATISTICAL'
+      vertex=vertex_stat
+    endif
+
+    stats%g=0
+
+    do i=0,NPIX-1               ! Loop over vertices. 
+                                ! need to check INSIDE or BORDER cells only
+                                ! to get all the vertices
+      if ( l_map(i) > OUTSIDE .or. l_map(i) <= BORDER ) then 
+        call update_genus(i,stats%g)
+      endif
+    enddo
+    
+    ! Two vertices - North and South poles - are extra
+    call update_genus_pole(0,stats%g)        ! North pole in ring notation
+    call update_genus_pole(NPIX-4,stats%g)   ! South pole in ring notation
+
+  endif
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Number of border segments determination
+
+  if ( stats%do_sides ) then
+
+    ALLOCATE( stats%s(1:nvoids) )       ! contains number of cluster sides
+    ALLOCATE( stats%sm(1:nvoids) )      ! contains count of masked boudary
+    stats%s=0
+    stats%sm=0
+
+    do i=0,NPIX-1                       ! Loop over pixels
+
+                                       ! To get all the border edges
+      if ( l_map(i) == BORDER ) then   ! need to check BORDER pixels 
+        call update_sides(i,stats%s)
+      else if ( l_map(i) == MASKED_BORDER ) then 
+        call update_sides(i,stats%sm) ! or  BORDER+MASKED only
+      endif
+    enddo
+
+  endif
+  
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Border length determination
+
+  if ( stats%do_length ) then
+
+    ALLOCATE( stats%sf(1:nvoids) )  ! contains surface length of clusters
+    stats%sf=0.d0
+
+    do i=0,NPIX-1                   ! Loop over vertices
+                                    ! MASKED BORDER is not included
+      if ( l_map(i) > OUTSIDE .or. l_map(i) == BORDER ) then 
+        call update_surf(dt,level,i,stats%sf)
+      endif
+    enddo
+
+  endif
+
+  DEALLOCATE( l_map )
+  
+  END SUBROUTINE
+
+
+  INTEGER FUNCTION regions (k)
+  INTEGER k,new_on_stack,istack
+
+  istack = 0
+  regions = 1
+  DO WHILE ( istack >= 0 )
+    new_on_stack = neibr(k,istack)
+    regions = regions + new_on_stack
+    istack = istack + new_on_stack - 1
+  ENDDO
+  RETURN
+  END FUNCTION
+
+
+  INTEGER FUNCTION neibr(k,istack)
+  INTEGER k,istack
+  INTEGER i,new_on_stack,ipix
+  INTEGER(I4B) center_pix,neighbour_list(8),n_neighbours
+     
+  center_pix=pixstack(istack)
+  call neighbours_nest(NSIDE,center_pix,neighbour_list,n_neighbours)
+ 
+  neibr=0
+  DO i=1,n_neighbours
+    ipix=neighbour_list(i)           
+    IF (l_map(ipix) == UNCHECKED) then
+      pixstack(istack+neibr) = ipix
+      if (istack+neibr > MAXSTACK) MAXSTACK=istack+neibr
+        l_map(ipix) = k
+        neibr=neibr+1
+      ELSE IF (l_map(ipix) == OUTSIDE) then
+        l_map(ipix)=BORDER
+      ELSE IF (l_map(ipix) == MASKED)  then
+        l_map(ipix)=MASKED_BORDER
+      ENDIF
+  ENDDO
+  RETURN
+  END FUNCTION
 
 
 !  This is main function for genus analysis. Sets code of the vertex 
