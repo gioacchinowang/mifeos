@@ -23,20 +23,23 @@ RUN wget http://downloads.sourceforge.net/project/healpix/Healpix_3.60/Healpix_3
 WORKDIR /home/lab/healpix
 # write config file on fly
 RUN echo '3\n\
+	gcc\n\
+	\n\
 	gfortran\n\
 	\n\
+	y\n\
+	\n\
+	-O3\n\
+	gcc\n\
 	\n\
 	\n\
 	\n\
-	\n\
-	\n\
-	\n\
-	\n\
-	\n\
-	\n\
+	/usr/local/lib\n\
+	n\n\
 	0\n\
-	\n\
-	\n\
+	y\n\
+	y\n\
+	y\n\
 	0\n'\
 	> hlpx_config
 RUN ./configure -L < hlpx_config && make
