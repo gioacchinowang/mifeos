@@ -25,17 +25,17 @@ WORKDIR /home/lab/healpix
 RUN echo '3\n\
 	gfortran\n\
 	\n\
-	\n\
-	\n\
-	\n\
-	\n\
-	\n\
-	\n\
-	\n\
-	\n\
-	\n\
+	-I$(F90_INCDIR) -DGFORTRAN -fno-second-underscore\n\
+	-O3\n\
+	gcc\n\
+	-O3 -std=c99 -DgFortran\n\
+	ar -rsv\n\
+	libcfitsio.a\n\
+	/usr/local/lib\n\
+	n\n\
 	0\n\
-	\n\
+	y\n\
+	y\n\
 	y\n\
 	0\n'\
 	> hlpx_config
