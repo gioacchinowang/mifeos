@@ -19,26 +19,23 @@ WORKDIR /home/lab
 
 # HEALPIX
 RUN mkdir /home/lab/healpix
-RUN wget http://downloads.sourceforge.net/project/healpix/Healpix_3.60/Healpix_3.60_2019Dec18.tar.gz && tar xzf Healpix_3.60_2019Dec18.tar.gz -C healpix --strip-components 1
+RUN wget http://downloads.sourceforge.net/project/healpix/Healpix_3.50/Healpix_3.50_2018Dec10.tar.gz && tar xzf Healpix_3.50_2018Dec10.tar.gz -C healpix --strip-components 1
 WORKDIR /home/lab/healpix
 # write config file on fly
 RUN echo '3\n\
-	gcc\n\
-	\n\
 	gfortran\n\
 	\n\
-	y\n\
-	\n\
-	-O3\n\
-	gcc\n\
 	\n\
 	\n\
 	\n\
-	/usr/local/lib\n\
-	n\n\
+	\n\
+	\n\
+	\n\
+	\n\
+	\n\
+	\n\
 	0\n\
-	y\n\
-	y\n\
+	\n\
 	y\n\
 	0\n'\
 	> hlpx_config
