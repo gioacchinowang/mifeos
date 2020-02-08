@@ -12,7 +12,8 @@ class estimator(object):
     def __init__(self,
                  exe_path=None,
                  map_path=None,
-                 msk_path=None):
+                 msk_path=None,
+                 nside=None):
         # current working directory
         self.wk_dir = os.getcwd()
         self.exe_path = exe_path
@@ -39,6 +40,10 @@ class estimator(object):
     def msk_path(self):
         return sef._msk_path
         
+    @property
+    def nside(self):
+        return self._nside
+        
     @exe_path.setter
     def exe_path(self, exe_path):
         """
@@ -60,6 +65,11 @@ class estimator(object):
         self._msk_path = os.path.abspath(msk_path)
         assert os.path.isfile(self._msk_path)
         
+    @nside.setter
+    def nside(self, nside):
+        assert isinstance(nside, int)
+        self._nside = nside
+        
     def run(self):
         dumpfile = os.path.join(self._wk_dir, 'mf.dat')
         if os.path.isfile(dumpfile):
@@ -67,7 +77,8 @@ class estimator(object):
         
         temp_process = subprocess.Popen([self._exe_path,
                                          self._map_path,
-                                         self._msk_path],
+                                         self._msk_path,
+                                         self._nside],
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT)
         temp_process.wait()

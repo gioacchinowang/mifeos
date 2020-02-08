@@ -14,7 +14,8 @@ program main
   !warning, I4B may not be sufficient
   integer(I4B)                       :: p !number of thresholds
   integer(I4B),parameter             :: nmap=1 !single map to be read
-  integer(I4B),parameter             :: npix=49152 !Nside=64
+  character*80                       :: nside !HEALPix Nside
+  integer(I4B)                       :: npix !data size
   integer(I4B)                       :: i,umpix
   real(DP)                           :: mean,variance,minval,maxval
   real(DP)                           :: ecartt,nullval
@@ -35,16 +36,19 @@ program main
   !=========================================================================== 
   
   !make sure the right number of inputs have been provided
-  if(COMMAND_ARGUMENT_COUNT().ne.2) then
-    write(*,*)'error, two command-line arugments required.'
+  if(COMMAND_ARGUMENT_COUNT().ne.3) then
+    write(*,*)'error, three command-line arugments required: map name, mask name, HEALPix Nside'
     stop
   endif
 
   call GET_COMMAND_ARGUMENT(1,mapname)
   call GET_COMMAND_ARGUMENT(2,maskname)
+  call GET_COMMAND_ARGUMENT(3,nside)
 
   !mapname='map_cmb_ns64.fits' !path to target scalar map
   !maskname='mask_gal_fsky0.80_ns64.fits' !path to mask map
+  read(nside,*) npix
+  npix = 12*npix*npix
 
   p=100 !number of thresholds
   maxnu=3.5d0 !maxinum threshold val, in units of sigma(map)
@@ -72,7 +76,7 @@ program main
   write(*,*)'info: target map read'
 
   !==========================================================================
-  !  Importation of the galactic mask, ring, nside=64
+  !  Importation of the galactic mask, ring
   !========================================================================== 
 
   allocate(mapmask(0:npix-1,1:nmap))
