@@ -25,6 +25,7 @@ WORKDIR /home/lab/healpix
 RUN echo '3\n\
 	gfortran\n\
 	\n\
+	y\n\
 	-I$(F90_INCDIR) -DGFORTRAN -fno-second-underscore\n\
 	-O3\n\
 	gcc\n\
