@@ -46,7 +46,7 @@ program main
   !mapname='map_cmb_ns64.fits' !path to target scalar map
   !maskname='mask_gal_fsky0.80_ns64.fits' !path to mask map
 
-  p=26 !number of thresholds
+  p=100 !number of thresholds
   maxnu=3.5d0 !maxinum threshold val, in units of sigma(map)
 
   galvalue=-1.6375000d30 !HEALPix.bad_value
@@ -95,9 +95,9 @@ program main
 
   mean=sum(map(0:npix-1),mask=map>galvalue)/umpix
   write(*,*)'info: partial sky mean =',mean
-  where (map>galvalue) map=map-mean !remove the monopole of partial sky
-  mean=sum(map(0:npix-1),mask=map>galvalue)/umpix
-  write(*,*)'info: regulated partial sky mean =',mean
+  !where (map>galvalue) map=map-mean !remove the monopole of partial sky
+  !mean=sum(map(0:npix-1),mask=map>galvalue)/umpix
+  !write(*,*)'info: regulated partial sky mean =',mean
 
   variance=0d0
   minval=map(0)
@@ -120,11 +120,11 @@ program main
   write(*,*)'info: partial skay std =',ecartt
 
   !normalize map by its std
-  where (map>galvalue) map=map/ecartt
-  meanmap=mean/ecartt
-  minval=minval/ecartt
-  maxval=maxval/ecartt
-  write(*,*)'info: target map normalized'
+  !where (map>galvalue) map=map/ecartt
+  !meanmap=mean/ecartt
+  !minval=minval/ecartt
+  !maxval=maxval/ecartt
+  !write(*,*)'info: target map normalized'
 
   !==========================================================================
   !            Minkowski functionals of the map
@@ -133,7 +133,7 @@ program main
   nameout='mf.dat'
 
   !call the subroutine defined in the following
-  call mink(map,nameout,p,ecartt,maxnu,minval,meanmap,umpix)
+  call mink(map,nameout,p,ecartt,maxnu,minval,mean,umpix)
   
   deallocate(map)
 
@@ -188,9 +188,9 @@ subroutine mink(dt,nameout,p,ecartt,maxnu,minval,meanmap,umpix)
  
   fsky=umpix
   fsky=fsky/npix 
-  write(*,*)'info: sky fraction =',fsky
 
   open(1,file=nameout)
+  write(1,*)'# info: sky fraction =',fsky
   write(1,*)'# info: initial RMS of the map =',ecartt
   write(*,*)'info: mink initialized'
 
@@ -202,8 +202,8 @@ subroutine mink(dt,nameout,p,ecartt,maxnu,minval,meanmap,umpix)
 
   !loop through threshold levels
   do j=0,p-1
-    ! level in std units
-    level=-maxnu+j*2.d0*maxnu/(p-1) !map already normalized by ecartt
+    ! level in signal units, maxnu is the maximum sigma span of std
+    level=meanmap-maxnu*ecartt+j*2.d0*maxnu*ecartt/(p-1)
     if ( CND_CNTRL%CONNECT == CND_CNTRL%STAT ) then
       if ( level < meanmap ) then
         CND_CNTRL%EXCURSION = CND_CNTRL%BELOW
@@ -254,7 +254,7 @@ subroutine mink(dt,nameout,p,ecartt,maxnu,minval,meanmap,umpix)
     v2=result_genus
     v2=v2/(4.d0*Pi*fsky)/4.d0
 
-    write(1,'(f5.2,f13.5,f11.6,f11.7,i7)')level,v2,v1,v0,nvoids
+    write(1,'(e10.3,2X,e10.3,2X,e10.3,2X,e10.3,2X,i7)')level,v0,v1,v2,nvoids
 
   enddo
   close(1)

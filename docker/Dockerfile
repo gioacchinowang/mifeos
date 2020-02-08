@@ -41,6 +41,7 @@ RUN echo '3\n\
 	0\n'\
 	> hlpx_config
 RUN ./configure -L < hlpx_config && make
+ENV LD_LIBRARY_PATH /home/lab/healpix/lib:${LD_LIBRARY_PATH}
 WORKDIR /home/lab
 
 # GOOGLE TEST

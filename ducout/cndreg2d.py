@@ -7,7 +7,7 @@ import subprocess
 import healpy as hp
 import numpy as np
 
-class cndreg2d(object):
+class estimator(object):
 
     def __init__(self,
                  exe_path=None,
