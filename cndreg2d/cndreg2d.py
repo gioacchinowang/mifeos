@@ -13,13 +13,15 @@ class estimator(object):
                  exe_path=None,
                  map_path=None,
                  msk_path=None,
-                 nside=None):
+                 nside=None,
+                 threshold=None):
         # current working directory
         self.wk_dir = os.getcwd()
         self.exe_path = exe_path
         self.map_path = map_path
         self.msk_path = msk_path
         self.nside = nside
+        self.threshold = threshold
         
     @property
     def wk_dir(self):
@@ -44,6 +46,10 @@ class estimator(object):
     @property
     def nside(self):
         return self._nside
+        
+    @property
+    def threshold(self):
+        return self._threshold
         
     @exe_path.setter
     def exe_path(self, exe_path):
@@ -71,15 +77,21 @@ class estimator(object):
         assert isinstance(nside, int)
         self._nside = nside
         
+    @threshold.setter
+    def threshold(self, threshold):
+        assert isinstance(threshold, int)
+        self._threshold = threshold
+        
     def run(self):
-        dumpfile = os.path.join(self._wk_dir, 'mf.dat')
+        dumpfile = os.path.join(self._wk_dir, 'mfs.dat')
         if os.path.isfile(dumpfile):
             os.remove(dumpfile)
         
         temp_process = subprocess.Popen([self._exe_path,
                                          self._map_path,
                                          self._msk_path,
-                                         str(self._nside)],
+                                         str(self._nside),
+                                         str(self._threshold)],
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT)
         temp_process.wait()
