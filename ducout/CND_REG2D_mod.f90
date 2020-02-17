@@ -86,11 +86,6 @@ CONTAINS
   TYPE(CND_CNTRL_TYPE)                    :: CND_CNTRL
        
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Data read-in and setup
- 
-  !if ( associated(stats%n) ) deallocate(stats%n)  ! clear stats arrays
-  !if ( associated(stats%s) ) deallocate(stats%s)
-  !if ( associated(stats%sf)) deallocate(stats%sf)
-  !if ( associated(stats%g) ) deallocate(stats%g)
 
   if (.not.stats%do_genus .and. .not.stats%do_sides .and. .not.stats%do_length) then
     write(0,*)'No job was requested, return'
@@ -108,7 +103,7 @@ CONTAINS
   NPIX    = nside2npix(NSIDE) 
   ORDERING= ordering1
 
-  ALLOCATE( l_map(0:NPIX-1) )  ! Allocate and initialized the index map
+  allocate( l_map(0:NPIX-1) )  ! Allocate and initialized the index map
   l_map = OUTSIDE
 
   nabove=0
@@ -130,10 +125,10 @@ CONTAINS
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Cluster Analysis
   
   NV=min(nabove+1,NPIX/4)             ! max number of the connected regions
-  ALLOCATE( stats%n(1:NV) )           ! will contain volume of clusters
+  allocate( stats%n(1:NV) )           ! will contain volume of clusters
 
   NB=nabove                   ! Stack size NB should be at least equal number
-  ALLOCATE( pixstack(0:NB) )  ! of border points for largest cluster.
+  allocate( pixstack(0:NB) )  ! of border points for largest cluster.
                               ! Which can be as large as all points nabove
   stats%n=0
 
@@ -151,15 +146,15 @@ CONTAINS
       endif
     endif
   enddo
-    
+
   nvoids=min(k,NV)
-  DEALLOCATE( pixstack )
+  deallocate( pixstack )
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Genus determination
 
   if ( stats%do_genus ) then
 
-    ALLOCATE( stats%g(1:nvoids) )      ! will contain genus of clusters
+    allocate( stats%g(1:nvoids) )      ! will contain genus of clusters
 
     if ( CND_CNTRL%CONNECT == CND_CNTRL%STAT ) then
       vertex=vertex_stat
@@ -191,8 +186,8 @@ CONTAINS
 
   if ( stats%do_sides ) then
 
-    ALLOCATE( stats%s(1:nvoids) )       ! contains number of cluster sides
-    ALLOCATE( stats%sm(1:nvoids) )      ! contains count of masked boudary
+    allocate( stats%s(1:nvoids) )       ! contains number of cluster sides
+    allocate( stats%sm(1:nvoids) )      ! contains count of masked boudary
     stats%s=0
     stats%sm=0
 
@@ -212,7 +207,7 @@ CONTAINS
 
   if ( stats%do_length ) then
 
-    ALLOCATE( stats%sf(1:nvoids) )  ! contains surface length of clusters
+    allocate( stats%sf(1:nvoids) )  ! contains surface length of clusters
     stats%sf=0.d0
 
     do i=0,NPIX-1                   ! Loop over vertices
@@ -224,7 +219,7 @@ CONTAINS
 
   endif
 
-  DEALLOCATE( l_map )
+  deallocate( l_map )
   
   END SUBROUTINE
 

@@ -19,6 +19,7 @@ class estimator(object):
         self.exe_path = exe_path
         self.map_path = map_path
         self.msk_path = msk_path
+        self.nside = nside
         
     @property
     def wk_dir(self):
@@ -78,7 +79,7 @@ class estimator(object):
         temp_process = subprocess.Popen([self._exe_path,
                                          self._map_path,
                                          self._msk_path,
-                                         self._nside],
+                                         str(self._nside)],
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT)
         temp_process.wait()

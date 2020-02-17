@@ -14,12 +14,12 @@ program main
   !warning, I4B may not be sufficient
   integer(I4B)                       :: p !number of thresholds
   integer(I4B),parameter             :: nmap=1 !single map to be read
-  character*80                       :: nside !HEALPix Nside
-  integer(I4B)                       :: npix !data size
+  character*80                       :: nside_c !HEALPix Nside char
+  integer(I4B)                       :: nside, npix !HEALPix Nside and Npix
   integer(I4B)                       :: i,umpix
   real(DP)                           :: mean,variance,minval,maxval
   real(DP)                           :: ecartt,nullval
-  real(DP)                           :: galvalue
+  real(DP)                           :: badvalue
   !maxnu, maximum threshold (symetric)
   real(DP)                           :: maxnu,meanmap
   real(DP),dimension(:),allocatable  :: map
@@ -43,17 +43,17 @@ program main
 
   call GET_COMMAND_ARGUMENT(1,mapname)
   call GET_COMMAND_ARGUMENT(2,maskname)
-  call GET_COMMAND_ARGUMENT(3,nside)
+  call GET_COMMAND_ARGUMENT(3,nside_c)
 
   !mapname='map_cmb_ns64.fits' !path to target scalar map
   !maskname='mask_gal_fsky0.80_ns64.fits' !path to mask map
-  read(nside,*) npix
-  npix = 12*npix*npix
+  read(nside_c,*) nside
+  npix = 12*nside*nside
 
   p=100 !number of thresholds
   maxnu=3.5d0 !maxinum threshold val, in units of sigma(map)
 
-  galvalue=-1.6375000d30 !HEALPix.bad_value
+  badvalue=-1.6375000d30 !HEALPix.bad_value
 
   !===========================================================================
   !            Reading map
@@ -86,7 +86,7 @@ program main
 
   !set masked area by HEALPix.bad_value
   where(mapmask(:,1)==0.)
-    map=galvalue
+    map=badvalue
   end where
 
   umpix=count(mapmask(:,1) > 0) !unmasked pixels
@@ -97,10 +97,10 @@ program main
   !       Properties and normalisation of the maps (excluding masked pixels)
   !========================================================================== 
 
-  mean=sum(map(0:npix-1),mask=map>galvalue)/umpix
+  mean=sum(map(0:npix-1),mask=map>badvalue)/umpix
   write(*,*)'info: partial sky mean =',mean
-  !where (map>galvalue) map=map-mean !remove the monopole of partial sky
-  !mean=sum(map(0:npix-1),mask=map>galvalue)/umpix
+  !where (map>badvalue) map=map-mean !remove the monopole of partial sky
+  !mean=sum(map(0:npix-1),mask=map>badvalue)/umpix
   !write(*,*)'info: regulated partial sky mean =',mean
 
   variance=0d0
@@ -108,7 +108,7 @@ program main
   maxval=map(0)
 
   do i=0,npix-1
-    if (map(i)>galvalue) then !un-masked area
+    if (map(i)>badvalue) then !un-masked area
       variance=variance+(map(i)-mean)**2
       !update min and max values
       if (map(i)<minval) minval=map(i)
@@ -124,7 +124,7 @@ program main
   write(*,*)'info: partial skay std =',ecartt
 
   !normalize map by its std
-  !where (map>galvalue) map=map/ecartt
+  !where (map>badvalue) map=map/ecartt
   !meanmap=mean/ecartt
   !minval=minval/ecartt
   !maxval=maxval/ecartt
@@ -137,14 +137,14 @@ program main
   nameout='mf.dat'
 
   !call the subroutine defined in the following
-  call mink(map,nameout,p,ecartt,maxnu,minval,mean,umpix)
+  call mink(map,nameout,p,ecartt,maxnu,minval,mean,umpix,nside,npix)
   
   deallocate(map)
 
 end program main
 
 
-subroutine mink(dt,nameout,p,ecartt,maxnu,minval,meanmap,umpix)
+subroutine mink(dt,nameout,p,ecartt,maxnu,minval,meanmap,umpix,nside,npix)
 
   !Minkowski functionals of the map. Loop on threshold values, functionals are
   !calculated at each threshold and written on an ASCII file.
@@ -165,8 +165,8 @@ subroutine mink(dt,nameout,p,ecartt,maxnu,minval,meanmap,umpix)
   USE pix_tools
  
   implicit none
-  integer(I4B),intent(in)          :: p,umpix
-  integer(I4B),parameter           :: npix=49152,nside=64
+  integer(I4B),intent(in)          :: p, umpix
+  integer(I4B),intent(in)          :: nside, npix
   real(DP), dimension(0:npix-1)    :: dt
   real(DP)                         :: level,ecartt,maxnu,meanmap,minval
   integer(I4B)                     :: j,k
@@ -189,7 +189,7 @@ subroutine mink(dt,nameout,p,ecartt,maxnu,minval,meanmap,umpix)
 
   ordering =  CND_CNTRL%RING !  ordering =  CND_CNTRL%NESTED
   CND_CNTRL%CONNECT = CND_CNTRL%STAT !  CND_CNTRL%CONNECT = CND_CNTRL%EXACT 
- 
+
   fsky=umpix
   fsky=fsky/npix 
 
@@ -260,6 +260,12 @@ subroutine mink(dt,nameout,p,ecartt,maxnu,minval,meanmap,umpix)
 
     write(1,'(e10.3,2X,e10.3,2X,e10.3,2X,e10.3,2X,i7)')level,v0,v1,v2,nvoids
 
+    if ( associated(stats%n) ) deallocate(stats%n)  ! clear stats arrays
+    !if ( associated(stats%s) ) deallocate(stats%s)
+    !if ( associated(stats%sm) ) deallocate(stats%sm)
+    if ( associated(stats%sf)) deallocate(stats%sf)
+    if ( associated(stats%g) ) deallocate(stats%g)
+
   enddo
   close(1)
 
@@ -286,5 +292,11 @@ subroutine mink(dt,nameout,p,ecartt,maxnu,minval,meanmap,umpix)
   enddo
 
   write(*,*) 'Properties of the manifold',result_genus/4.,result_volume,result_sides,result_maskedsides,nvoids
+
+  if ( associated(stats%n) ) deallocate(stats%n)  ! clear stats arrays
+  if ( associated(stats%s) ) deallocate(stats%s)
+  if ( associated(stats%sm) ) deallocate(stats%sm)
+  !if ( associated(stats%sf)) deallocate(stats%sf)
+  if ( associated(stats%g) ) deallocate(stats%g)
   
 end subroutine mink

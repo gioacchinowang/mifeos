@@ -1,4 +1,4 @@
-INFO
+## INTRODUCTION
 
 3 Minkowski functionals + number of isolated connected clusters
 
@@ -8,14 +8,14 @@ of course, if you find any bugs.
 
 If used in publications, please cite:
 
-1) arXiv:1209.1223 (or updated journal reference as it comes out)
-2) Gay, C., Pichon, C., Pogosyan, D. Physical Review D, vol. 85, Issue 2, id. 023011.
+1) [Ducout, A., Bouchet, F., Colombi, S., Pogosyan, D., Prunet, S., MNRAS, 429, 3, 2104-2126](https://academic.oup.com/mnras/article/429/3/2104/1001307) 
+2) [Gay, C., Pichon, C., Pogosyan, D. PhyRevD, 85, 023011](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.85.023011)
 
-CONTACT
+## CONTACT
 
-Anne Ducout (anne at ducout.com),  Dmitri Pogosyan (pogosyan at ualberta.ca)
+Dr. Anne Ducout,  Dr. Dmitri Pogosyan
 
-INSTALLATION
+## INSTALLATION
 
 Code is in fortran90/95 and has been checked with Intel ifort compiler.
 Reguirements: HEALPix, CFITSIO, LAPACK and BLAS available.
@@ -36,10 +36,9 @@ his/her particular needs.
 2) CND_REG2D_mod.f90 : 
     the core algorithm for MFs, computes the 3 functionals at a given threshold.
     
-POSSIBLE ISSUES
+## POSSIBLE ISSUES
 
 for very high resolution data, some 4-byte INTEGER(I4B) variables may become
 insufficient, and will need to be replaced by 8-byte INTEGER(I8B)
 
-### this legacy code is shared by Dr. Anne Ducout, its not mem-leak free!
-### we're goint to rewrite it into the C++ version
+### this legacy code is originally shared by Dr. Anne Ducout and now modified by Dr. Jiaxin Wang
