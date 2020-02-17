@@ -9,11 +9,7 @@ of course, if you find any bugs.
 If used in publications, please cite:
 
 1) [Ducout, A., Bouchet, F., Colombi, S., Pogosyan, D., Prunet, S., MNRAS, 429, 3, 2104-2126](https://academic.oup.com/mnras/article/429/3/2104/1001307) 
-2) [Gay, C., Pichon, C., Pogosyan, D. PhyRevD, 85, 023011](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.85.023011)
-
-## CONTACT
-
-Dr. Anne Ducout,  Dr. Dmitri Pogosyan
+2) [Gay, C., Pichon, C., Pogosyan, D., PhyRevD, 85, 023011](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.85.023011)
 
 ## INSTALLATION
 
@@ -41,4 +37,8 @@ his/her particular needs.
 for very high resolution data, some 4-byte INTEGER(I4B) variables may become
 insufficient, and will need to be replaced by 8-byte INTEGER(I8B)
 
-### this legacy code is originally shared by Dr. Anne Ducout and now modified by Dr. Jiaxin Wang
+
+## AUTHOR
+
+- Dr. Anne Ducout
+- Dr. Dmitri Pogosyan
