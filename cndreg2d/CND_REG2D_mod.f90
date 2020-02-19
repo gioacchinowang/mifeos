@@ -559,7 +559,7 @@ ds = ds + ds1
 endif
 
 ! Time to increment the lengths of the "k" region
-s(k) = s(k) + ds
+s(k) = s(k) + ds !result in radians
 endif
 
 RETURN

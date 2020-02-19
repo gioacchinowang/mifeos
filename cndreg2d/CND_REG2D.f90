@@ -97,13 +97,13 @@ deallocate(mapmask)
 !===============================================================================
 
 mean = sum(mapdata(0:npix-1), mask = mapdata>badvalue)/umpix
-write(*,*)'info: partial sky mean =',mean
+write(*,*)'info: partial sky MEAN =',mean
 where (mapdata>badvalue) mapdata = mapdata -mean
 mean = sum(mapdata(0:npix-1), mask = mapdata>badvalue)/umpix
 
 variance = 0d0
-minval = mapdata(0)
-maxval = mapdata(0)
+minval = mean
+maxval = mean
 
 do i = 0,npix-1
   if (mapdata(i)>badvalue) then !un-masked area
@@ -113,13 +113,13 @@ do i = 0,npix-1
     if (mapdata(i)>maxval) maxval = mapdata(i)
   endif
 enddo
-write(*,*)'info: partial sky min =',minval,', max =',maxval
+write(*,*)'info: partial sky MIN =',minval,', MAX =',maxval
 
 variance = variance/(umpix-1)
-write(*,*)'info: partial sky var =',variance
+write(*,*)'info: partial sky VARIANCE =',variance
 
 rms = sqrt(variance)
-write(*,*)'info: partial skay std =',rms
+write(*,*)'info: partial skay RMS =',rms
 
 where (mapdata>badvalue) mapdata = mapdata/rms
 mean = mean/rms
@@ -168,10 +168,10 @@ real(DP)                         :: level
 integer(I4B)                     :: j, k
 !TYPE EXCRS_STST defined in CND_REG2D_mod.f90
 type(EXCRS_STAT)                 :: stats
-integer(I4B)                     :: nvoids, ordering
-integer(I4B)                     :: result_volume, result_genus
+integer(I4B)                     :: nvoids, ordering !in pixel# units
+integer(I4B)                     :: result_volume, result_genus !in pixel# units
 integer(I4B)                     :: result_sides, result_maskedsides
-real(DP)                         :: result_length
+real(DP)                         :: result_length !in ? units
 real(DP)                         :: v0, v1, v2
 real(DP)                         :: fsky !sky coverage
 !TYPE CND_CNTRL_TYPE defined in CND_REG2D_mod.f90
@@ -230,22 +230,22 @@ do j=0,p-1
     if (stats%do_length) result_length = result_length+stats%sf(k)
   enddo
 
-  if ( CND_CNTRL%CONNECT == CND_CNTRL%STAT ) then
-    if ( level < meanmap ) then
-      result_volume = npix - result_volume
-      result_genus  = 8 - result_genus
+  if (CND_CNTRL%CONNECT==CND_CNTRL%STAT) then
+    if (level<meanmap) then
+      result_volume = npix-result_volume
+      result_genus  = 8-result_genus
     endif
   endif
 
   !v0: first Minkowski funtional, volume (area)
-  if ( level<meanmap ) then
+  if (level<meanmap) then
     v0 = result_volume-(npix-umpix)
   else
     v0 = result_volume
   endif
-  v0 = v0/umpix
+  v0 = v0/umpix ! "volume" normalization, v0 is now independent of resolution
   !v1: second Minkowski funtional, perimeter
-  v1=result_length/(4.d0*Pi*fsky)/4.d0
+  v1 = result_length/(4.d0*Pi*fsky)/4.d0
   !v2: third Minkowski funtional, genus
   v2 = result_genus
   v2 = v2/(4.d0*Pi*fsky)/4.d0
