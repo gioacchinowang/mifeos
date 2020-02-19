@@ -86,6 +86,12 @@ class estimator(object):
         dumpfile = os.path.join(self._wk_dir, 'mfs.dat')
         if os.path.isfile(dumpfile):
             os.remove(dumpfile)
+            
+        # security check for CND_REG2D
+        tmp_map = hp.read_map(self._map_path,field=[0])
+        tmp_msk = hp.read_map(self._msk_path,field=[0])
+        assert (len(tmp_map) == 12*self._nside**2)
+        assert (len(tmp_map) == len(tmp_msk))
         
         temp_process = subprocess.Popen([self._exe_path,
                                          self._map_path,
