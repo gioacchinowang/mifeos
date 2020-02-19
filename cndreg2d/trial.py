@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 
-def single_map(map_path, mask_path, map_nside, mfs_threshold):
-    obj = estimator('CND_REG2D', map_path, mask_path, map_nside, mfs_threshold)
+def single_map(map_path, mask_path, map_nside, threshold_lv):
+    obj = estimator('CND_REG2D', map_path, mask_path, map_nside, threshold_lv)
     tmp = obj.run()
     '''
     returning std_shredshold, v0, v1, v2
@@ -24,14 +24,14 @@ def test_example():
 	ax[0].plot(stot, v0tot)
 	ax[1].plot(stot, v1tot)
 	ax[2].plot(stot, v2tot)
-	ax[2].xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0e'))
+	ax[2].xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
 	ax[0].tick_params(axis='both', which='major', labelsize='15')
 	ax[1].tick_params(axis='both', which='major', labelsize='15')
 	ax[2].tick_params(axis='both', which='major', labelsize='15')
-	ax[2].set_xlabel(r'threshold', fontsize=15)
-	ax[0].set_ylabel(r'MFs $v_0$', fontsize=15)
-	ax[1].set_ylabel(r'MFs $v_1$', fontsize=15)
-	ax[2].set_ylabel(r'MFs $v_2$', fontsize=15)
+	ax[2].set_xlabel(r'normalized threshold', fontsize=15)
+	ax[0].set_ylabel(r'MFs $V_0$', fontsize=15)
+	ax[1].set_ylabel(r'MFs $V_1$', fontsize=15)
+	ax[2].set_ylabel(r'MFs $V_2$', fontsize=15)
 	plt.savefig('test_example.png')
 
 

@@ -161,13 +161,13 @@ deallocate(pixstack)
 if (stats%do_genus) then
   allocate(stats%g(1:nvoids)) ! will contain genus of clusters
   if (CND_CNTRL%CONNECT == CND_CNTRL%STAT) then
-    vertex=vertex_stat
+    vertex = vertex_stat
   else if (CND_CNTRL%CONNECT == CND_CNTRL%EXACT) then
-    vertex=vertex_exct
+    vertex = vertex_exct
   else
     write(0,*)'requested connectivity type ',CND_CNTRL%CONNECT ,'unknown'
     write(0,*)'default to STATISTICAL'
-    vertex=vertex_stat
+    vertex = vertex_stat
   endif
   stats%g=0
   do i=0,NPIX-1 ! Loop over vertices.

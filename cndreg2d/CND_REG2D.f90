@@ -29,7 +29,7 @@ integer(I4B),parameter             :: nmap = 1 !single map to be read
 character*80                       :: nside_chr !HEALPix Nside char
 integer(I4B)                       :: nside, npix !HEALPix Nside and Npix
 integer(I4B)                       :: umpix !number of un-masked pixels
-real(DP)                           :: mean, variance, rms, minval, maxval !basic stastics of map
+real(DP)                           :: mean, minval, maxval, variance, rms !basic stastics of map
 real(DP),parameter                 :: maxnu = 3.5d0 !mamimum MFs threshold value, in units of RMS
 real(DP),dimension(:),allocatable  :: mapdata !memory handle for single HEALPix map
 real(DP),dimension(:,:),allocatable:: mapmask, mapfits
@@ -49,14 +49,14 @@ write(*,*)'info: in main routine'
   
 !make sure the right number of inputs have been provided
 if(command_argument_count().ne.4) then
-write(*,*)'4 command-line arugments required: map path, mask path, HEALPix Nside, number of thresholds'
+write(*,*)'map, mask, Nside, threshold size'
 stop
 endif
 
 call get_command_argument(1,mapname) !path to target scalar map
 call get_command_argument(2,maskname) !path to mask map
 call get_command_argument(3,nside_chr)
-call get_command_argument(3,p_chr)
+call get_command_argument(4,p_chr)
 
 read(nside_chr,*) nside !convert input char to integer
 npix = 12*nside*nside !calculate Npix from Nside
@@ -98,6 +98,9 @@ deallocate(mapmask)
 
 mean = sum(mapdata(0:npix-1), mask = mapdata>badvalue)/umpix
 write(*,*)'info: partial sky mean =',mean
+where (mapdata>badvalue) mapdata = mapdata -mean
+mean = sum(mapdata(0:npix-1), mask = mapdata>badvalue)/umpix
+
 variance = 0d0
 minval = mapdata(0)
 maxval = mapdata(0)
@@ -118,18 +121,22 @@ write(*,*)'info: partial sky var =',variance
 rms = sqrt(variance)
 write(*,*)'info: partial skay std =',rms
 
+where (mapdata>badvalue) mapdata = mapdata/rms
+mean = mean/rms
+minval = minval/rms
+
 !===============================================================================
 !            Minkowski functionals of the map
 !===============================================================================
 
 !call the subroutine defined in the following
-call mink(mapdata,nside,npix,nameout,p,rms,maxnu,minval,mean,umpix)
+call mink(mapdata,nside,npix,minval,mean,rms,maxnu,p,umpix,nameout)
 deallocate(mapdata)
 
 end program main
 
 
-subroutine mink(tmap,nside,npix,nameout,p,rms,maxnu,minval,meanmap,umpix)
+subroutine mink(tmap,nside,npix,minval,meanmap,rms,maxnu,p,umpix,nameout)
 
 !Minkowski functionals of the map. Loop on threshold values, functionals are
 !calculated at each threshold and written on an ASCII file.
@@ -155,8 +162,9 @@ implicit none
 integer(I4B),intent(in)          :: p, umpix
 integer(I4B),intent(in)          :: nside, npix
 character*80,intent(in)          :: nameout
+real(DP),intent(in)              :: minval, meanmap, rms, maxnu
 real(DP), dimension(0:npix-1)    :: tmap
-real(DP)                         :: level, rms, maxnu, meanmap, minval
+real(DP)                         :: level
 integer(I4B)                     :: j, k
 !TYPE EXCRS_STST defined in CND_REG2D_mod.f90
 type(EXCRS_STAT)                 :: stats
@@ -183,7 +191,6 @@ fsky = fsky/npix
 
 open(1,file=nameout)
 write(1,*)'# info: sky fraction =',fsky
-write(1,*)'# info: initial RMS of the map =',rms
 write(*,*)'info: mink initialized'
 
 !===============================================================================
@@ -195,7 +202,7 @@ stats%do_sides =.false.
 !loop through threshold levels
 do j=0,p-1
   ! level in signal units, maxnu is the maximum sigma span of std
-  level = meanmap-maxnu*rms+j*2.d0*maxnu*rms/(p-1)
+  level = -maxnu+j*2.d0*maxnu/(p-1)
   if (CND_CNTRL%CONNECT == CND_CNTRL%STAT) then
     if (level < meanmap) then
       CND_CNTRL%EXCURSION = CND_CNTRL%BELOW
@@ -258,35 +265,35 @@ enddo
 close(1)
 
 ! Get the properties of the manifold. Can be used for correction
-stats%do_genus=.true.
-stats%do_sides=.true.
-stats%do_length=.false.
+!stats%do_genus=.true.
+!stats%do_sides=.true.
+!stats%do_length=.false.
 
-CND_CNTRL%EXCURSION = CND_CNTRL%ABOVE
+!CND_CNTRL%EXCURSION = CND_CNTRL%ABOVE
 
-call CND_REG(tmap,nside,ordering,minval-rms,stats,nvoids,CND_CNTRL)
+!call CND_REG(tmap,nside,ordering,minval-rms,stats,nvoids,CND_CNTRL)
 
-result_genus=0
-result_sides=0
-result_maskedsides=0
-result_volume=0
+!result_genus=0
+!result_sides=0
+!result_maskedsides=0
+!result_volume=0
 
-do k=1,nvoids
-  result_volume =result_volume+stats%n(k)
-  result_genus = result_genus+stats%g(k)
-  result_sides = result_sides+stats%s(k)
-  result_maskedsides = result_maskedsides+stats%sm(k)
-enddo
-
-write(*,*)'Properties of the manifold',result_genus/4.,result_volume,result_sides,result_maskedsides,nvoids
-
+!do k=1,nvoids
+!  result_volume =result_volume+stats%n(k)
+!  result_genus = result_genus+stats%g(k)
+!  result_sides = result_sides+stats%s(k)
+!  result_maskedsides = result_maskedsides+stats%sm(k)
+!enddo
+!
+!write(*,*)'Properties of the manifold',result_genus/4.,result_volume,result_sides,result_maskedsides,nvoids
+!
 ! clear stats arrays
-deallocate(stats%n)
-if (stats%do_sides) then
-  deallocate(stats%s)
-  deallocate(stats%sm)
-endif
-if (stats%do_length) deallocate(stats%sf)
-if (stats%do_genus) deallocate(stats%g)
+!deallocate(stats%n)
+!if (stats%do_sides) then
+!  deallocate(stats%s)
+!  deallocate(stats%sm)
+!endif
+!if (stats%do_length) deallocate(stats%sf)
+!if (stats%do_genus) deallocate(stats%g)
 
 end subroutine mink
