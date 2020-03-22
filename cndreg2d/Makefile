@@ -2,7 +2,7 @@
 .SUFFIXES:  .out .o .f90 .for .f
 # Edit this to be correct on your system
 F90 = gfortran
-F90OPTS = -O3 -openmp
+F90OPTS = -O3 -fopenmp
 
 HEALPIX = /home/lab/healpix
 
