@@ -3,7 +3,7 @@ FROM ubuntu:latest
 MAINTAINER jiaxin.wang@sjtu.edu.cn
 
 RUN apt-get update
-RUN apt-get install -y --fix-missing build-essential gfortran autoconf cmake
+RUN apt-get install -y --fix-missing build-essential gfortran libblas-dev liblapack-dev autoconf cmake
 RUN apt-get install -y --fix-missing git wget vim unzip valgrind python3 python3-dev python3-pip
 RUN pip3 install numpy scipy matplotlib astropy healpy jupyter
 
@@ -21,8 +21,9 @@ WORKDIR /home/lab
 RUN mkdir /home/lab/healpix
 RUN wget https://sourceforge.net/projects/healpix/files/Healpix_3.60/Healpix_3.60_2019Dec18.tar.gz && tar xzf Healpix_3.60_2019Dec18.tar.gz -C healpix --strip-components 1
 WORKDIR /home/lab/healpix
-RUN ./configure --auto=cxx
+RUN ./configure --auto=f90
 RUN make
+WORKDIR /home/lab
 
 # MIFEOS
 RUN git clone https://github.com/gioacchinowang/mifeos.git mifeos
