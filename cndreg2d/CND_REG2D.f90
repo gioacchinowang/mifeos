@@ -23,19 +23,19 @@ use CND_REG2D_mod
 
 implicit none
 !warning, I4B may not be sufficient
-character*80                       :: p_chr !number of thresholds char
+character*128                       :: p_chr !number of thresholds char
 integer(I4B)                       :: p !number of thresholds
 integer(I4B),parameter             :: nmap = 1 !single map to be read
-character*80                       :: nside_chr !HEALPix Nside char
+character*128                       :: nside_chr !HEALPix Nside char
 integer(I4B)                       :: nside, npix !HEALPix Nside and Npix
 integer(I4B)                       :: umpix !number of un-masked pixels
 real(DP)                           :: mean, minval, maxval, variance, rms !basic stastics of map
 real(DP),parameter                 :: maxnu = 3.5d0 !mamimum MFs threshold value, in units of RMS
 real(DP),dimension(:),allocatable  :: mapdata !memory handle for single HEALPix map
 real(DP),dimension(:,:),allocatable:: mapmask, mapfits
-character*80,parameter             :: nameout = 'mfs.dat' !MFs output file path
-character*80                       :: mapname !mapname, path to the target scalar map
-character*80                       :: maskname !maskname, path to the mask map
+character*128,parameter             :: nameout = 'mfs.dat' !MFs output file path
+character*128                       :: mapname !mapname, path to the target scalar map
+character*128                       :: maskname !maskname, path to the mask map
 logical                            :: anynull !nuisance parameter for HEALPix read map function
 integer(I4B)                       :: i
 real(DP)                           :: nullval !nuisane parameter for HEALPix read map function
@@ -161,7 +161,7 @@ use pix_tools
 implicit none
 integer(I4B),intent(in)          :: p, umpix
 integer(I4B),intent(in)          :: nside, npix
-character*80,intent(in)          :: nameout
+character*128,intent(in)          :: nameout
 real(DP),intent(in)              :: minval, meanmap, rms, maxnu
 real(DP), dimension(0:npix-1)    :: tmap
 real(DP)                         :: level
