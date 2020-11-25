@@ -1,6 +1,5 @@
 # MIFEOS
 
-the **MI**nkowski **F**unctional **E**stimator **O**n the **S**ky
+**MI**nkowski **F**unctional **E**stimator **O**n partial **S**ky
 
-It is a C++ package designed for estimating the Minkowski Functionals of signals on the sky,
-equiped with multi-threading support.
+It is a C++/Python package designed for estimating the Minkowski Functionals on partial sky.
