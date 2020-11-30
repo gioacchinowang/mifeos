@@ -49,5 +49,8 @@
 *.dat
 *.gze
 
+# pycache
+*/__pycache__/*.pyc
+
 # jupyter checkpoints
 */.ipynb_checkpoints/*.ipynb
