@@ -1,1 +1,1 @@
-from .hmfs import hmfs
+from .methods.hmfs import hmfs
